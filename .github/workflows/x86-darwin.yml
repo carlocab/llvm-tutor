@@ -1,6 +1,6 @@
 name: x86-Darwin
 
-on: 
+on:
   push:
   pull_request:
     branches: [ main ]
@@ -19,18 +19,23 @@ jobs:
       - name: Install Dependencies
         run: |
           brew update
-          brew install llvm
-          pip3 install lit
+          brew install llvm lit
+      - name: Set up environment variables
+        run: |
+          LLVM_DIR="$(brew --prefix llvm)"
+          printf 'LLVM_DIR=%s\n' "$LLVM_DIR" >> "$GITHUB_ENV"
+          printf 'CFLAGS=-fuse-ld=%s/bin/ld64.lld\n' "$LLVM_DIR" >> "$GITHUB_ENV"
+          printf 'CXXFLAGS=-fuse-ld=%s/bin/ld64.lld\n' "$LLVM_DIR" >> "$GITHUB_ENV"
       - name: Build HelloWorld
         run: |
           cd HelloWorld
           mkdir build && cd build
-          cmake -DLT_LLVM_INSTALL_DIR="/usr/local/opt/llvm@15/" -DCMAKE_BUILD_TYPE=${{ matrix.type }} ../
+          cmake -DLT_LLVM_INSTALL_DIR="$LLVM_DIR" -DCMAKE_BUILD_TYPE=${{ matrix.type }} ../
           make -j2
       - name: Build llvm-tutor + run tests
         run: |
           cd $GITHUB_WORKSPACE
           mkdir build && cd build
-          cmake -DLT_LLVM_INSTALL_DIR="/usr/local/opt/llvm@15/" -DCMAKE_BUILD_TYPE=${{ matrix.type }} ../
+          cmake -DLT_LLVM_INSTALL_DIR="$LLVM_DIR" -DCMAKE_BUILD_TYPE=${{ matrix.type }} ../
           make -j2
           lit test/
